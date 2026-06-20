@@ -1,12 +1,10 @@
 from fastapi import FastAPI
+from dotenv import load_dotenv
+load_dotenv()
+from routes.base import base_router
 
 app=FastAPI()
 
+app.include_router(base_router)
 
-@app.get("/")
-def hello_world():
-    return {"message": "Hello World!"}
 
-@app.get("/greet")
-def greet(name: str):
-    return {"message": f'Hello, {name}!'}
