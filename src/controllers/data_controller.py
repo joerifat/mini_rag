@@ -21,10 +21,10 @@ class DataController(BaseController):
         else:
             return True,UserResponses.FILE_VALIDATED_SUCCESS.value
         
-
+    
     def generate_unique_file_name(self, origin_file_name : str, project_id : str):
 
-        random_filename= self.generate_random_string()
+        random_key= self.generate_random_string()
         project_path= ProjectController().get_project_path(project_id)
 
         cleaned_file_name = self.get_clean_file_name(
