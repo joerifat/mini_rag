@@ -3,13 +3,13 @@ from typing import Optional
 from bson.objectid import ObjectId
 
 
-class project(BaseModel):
+class Project(BaseModel):
     _id : Optional[ObjectId]
     project_id : str = Field(...,min_length=1)
 
     @vaildator("project_id")
     async def validate_project_id(cls,value):
-        if not value.isalnum(project_id):
+        if not value.isalnum():
             raise ValueError("Project Id must be AlphaNumirc")
         
         return value
