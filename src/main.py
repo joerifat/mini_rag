@@ -12,7 +12,7 @@ async def startup_db_client():
 
 
     app.mongo_connection= AsyncIOMotorClient(settings.MONGODB_URL)
-    app.client_db= app.mongo_connection(settings.MONGODB_NAME)
+    app.client_db= app.mongo_connection[settings.MONGODB_NAME]
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends,UploadFile,status
+from fastapi import APIRouter, Depends,UploadFile,status,Request
 from fastapi.responses import JSONResponse
 from helpers import Settings, get_settings
 import os
@@ -7,7 +7,7 @@ import aiofiles
 from models import UserResponses
 import logging
 from .schemas.data import PROCESS_FILE
-
+from models import Projects
 
 logger = logging.getLogger('uvicorn.error')
 
@@ -16,7 +16,7 @@ logger = logging.getLogger('uvicorn.error')
 data_router=APIRouter(prefix="/api/v1/data", tags=["data"])
 
 @data_router.post("/upload/{project_id}")
-async def upload_file(project_id: str,file: UploadFile,
+async def upload_file(request : Request , project_id: str,file: UploadFile,
                       app_settings: Settings = Depends(get_settings)):
     
     # Validate the file type
@@ -25,6 +25,10 @@ async def upload_file(project_id: str,file: UploadFile,
     if not is_valid:
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST,
                             content={"signal":result_signal})
+    
+    add_to_clientdb= Projects(clientdb=request.app.client_db)
+    project= await add_to_clientdb.get_project_or_create_one(project_id=project_id)
+
     data_controller=DataController()
     file_path, file_id = data_controller.generate_unique_file_name(
         origin_file_name=file.filename,
@@ -48,7 +52,8 @@ async def upload_file(project_id: str,file: UploadFile,
     return JSONResponse(
             content={
                 "signal": UserResponses.FILE_UPLOAD_SUCCESS.value,
-                "file_id": file_id
+                "file_id": file_id,
+                "project_id":str(project._id)
             }
         )
 

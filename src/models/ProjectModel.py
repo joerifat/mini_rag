@@ -1,6 +1,6 @@
 from .BaseDataModel import BaseDataModel
-from enums import DatabaseEnum
-from schemas import Project
+from .enums import DatabaseEnum
+from .schemas import Project
 
 
 
@@ -22,7 +22,7 @@ class Projects(BaseDataModel):
 
         if record == None:
             project=Project(project_id=project_id)
-            result= await self.create_projects(project=project_id)
+            result= await self.create_projects(project=project)
 
             return project
         
