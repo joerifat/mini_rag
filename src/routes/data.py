@@ -7,7 +7,8 @@ import aiofiles
 from models import UserResponses
 import logging
 from .schemas.data import PROCESS_FILE
-from models import Projects
+from models import Projects,ADD_Chunks
+from models.schemas import Chunks
 
 logger = logging.getLogger('uvicorn.error')
 
@@ -25,9 +26,16 @@ async def upload_file(request : Request , project_id: str,file: UploadFile,
     if not is_valid:
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST,
                             content={"signal":result_signal})
-    
-    add_to_clientdb= Projects(clientdb=request.app.client_db)
+
+
+
+
+    # add project_id to the collection in Mongodb
+    add_to_clientdb= await Projects.call_two_functions(clientdb=request.app.client_db)
     project= await add_to_clientdb.get_project_or_create_one(project_id=project_id)
+
+
+
 
     data_controller=DataController()
     file_path, file_id = data_controller.generate_unique_file_name(
@@ -53,17 +61,21 @@ async def upload_file(request : Request , project_id: str,file: UploadFile,
             content={
                 "signal": UserResponses.FILE_UPLOAD_SUCCESS.value,
                 "file_id": file_id,
-                "project_id":str(project._id)
+                "project_id":str(project.id)
             }
         )
 
 
 @data_router.post("/process/{project_id}")
-async def process_endpoint(project_id : str, processrequest: PROCESS_FILE):
+async def process_endpoint(request:Request ,project_id : str, processrequest: PROCESS_FILE):
 
     file_id=processrequest.file_id
     Chunk_size=processrequest.chunk_size
     Chunk_overlap=processrequest.chunk_overlap
+    do_reset=processrequest.do_reset
+
+    add_to_clientdb= await Projects.call_two_functions(clientdb=request.app.client_db)
+    project= await add_to_clientdb.get_project_or_create_one(project_id=project_id)
 
     ProcessController = Process_controller(project_id=project_id)
 
@@ -77,7 +89,34 @@ async def process_endpoint(project_id : str, processrequest: PROCESS_FILE):
                             content={
                                 "signal":UserResponses.PROCESSING_FAILED.value
                             })   
-    return file_chunks
+    
+    file_chunks_SchemeObject=[
+        Chunks(chunk_text=i.page_content,
+               chunk_metadata=i.metadata,
+               chunk_order=order+1,
+               chunk_project_id=project.id)
+        for order,i in enumerate(file_chunks)
+    ]
+
+    
+    chunks = await ADD_Chunks.call_two_functions(clientdb=request.app.client_db)
+
+
+
+    if do_reset == 1:
+        _ = await chunks.delete_chunks_by_project_id(
+            project_id=project.id
+        )
+    
+
+    num_chunks= await chunks.add_many_chunks(chunks=file_chunks_SchemeObject,batchsize=10)
+
+    
+
+
+    return JSONResponse(status_code=status.HTTP_202_ACCEPTED,
+                        content={"signal":UserResponses.PROCESSING_SUCCESS.value,
+                                 "len_chun":num_chunks})
 
 
 

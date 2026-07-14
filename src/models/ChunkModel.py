@@ -10,10 +10,32 @@ class ADD_Chunks(BaseDataModel):
         super().__init__(clientdb=clientdb)
         self.collection=clientdb[DatabaseEnum.COLLECTION_CHUNKS_NAME.value]
 
+    @classmethod
+    async def call_two_functions(cls,clientdb : str):
+        instance=cls(clientdb)
+        await instance.init_collection()
+        return instance
+
+    async def init_collection(self):
+        all_collections= await self.clientdb.list_collection_names()
+
+        if DatabaseEnum.COLLECTION_CHUNKS_NAME.value not in all_collections:
+            self.collection = self.clientdb[DatabaseEnum.COLLECTION_CHUNKS_NAME.value]
+            indexs=Chunks.index_settings()
+            for index in indexs:
+                await self.collection.create_index(
+                    index["key"],
+                    name=index["name"],
+                    unique=index["unique"]
+                )
+
+
+    
+
     async def add_chunk(self,chunk:Chunks):
 
-        result= await self.collection.insert_one(chunk.dict())
-        chunk._id=result.inserted_id
+        result= await self.collection.insert_one(chunk.dict(by_alias=True,exclude_unset=True))
+        chunk.id=result.inserted_id
 
         return chunk
     
@@ -36,7 +58,7 @@ class ADD_Chunks(BaseDataModel):
             batch=chunks[i:i+batchsize]
 
             operations=[
-                InsertOne(chunks.dict())
+                InsertOne(rec.dict(by_alias=True,exclude_unset=True))
                 for rec in batch
             ]
 

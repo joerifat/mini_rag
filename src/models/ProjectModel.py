@@ -8,11 +8,32 @@ class Projects(BaseDataModel):
     def __init__(self,clientdb : str):
         super().__init__(clientdb=clientdb)
         self.collection= clientdb[DatabaseEnum.COLLECTION_PROJECT_NAME.value]
+
+    @classmethod
+    async def call_two_functions(cls,clientdb : str):
+        instance=cls(clientdb)
+        await instance.init_collection()
+        return instance
+
+    async def init_collection(self):
+        all_collections= await self.clientdb.list_collection_names()
+
+        if DatabaseEnum.COLLECTION_PROJECT_NAME.value not in all_collections:
+            self.collection = self.clientdb[DatabaseEnum.COLLECTION_PROJECT_NAME.value]
+            indexs=Project.index_settings()
+            for index in indexs:
+                await self.collection.create_index(
+                    index["key"],
+                    name=index["name"],
+                    unique=index["unique"]
+                )
+
+
     
     async def create_projects(self,project:Project):
 
-        result= await self.collection.insert_one(project.dict())
-        project._id= result.inserted_id
+        result= await self.collection.insert_one(project.dict(by_alias=True,exclude_unset=True))
+        project.id= result.inserted_id
         return project
     
 
