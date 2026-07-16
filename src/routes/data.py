@@ -4,11 +4,12 @@ from helpers import Settings, get_settings
 import os
 from controllers import DataController,ProjectController,Process_controller
 import aiofiles
-from models import UserResponses
+from models import UserResponses,Assets_Type
 import logging
 from .schemas.data import PROCESS_FILE
-from models import Projects,ADD_Chunks
-from models.schemas import Chunks
+from models import Projects,ADD_Chunks,ASSETS
+from models.schemas import Chunks,Assets
+
 
 logger = logging.getLogger('uvicorn.error')
 
@@ -57,10 +58,23 @@ async def upload_file(request : Request , project_id: str,file: UploadFile,
                 "signal": UserResponses.FILE_UPLOAD_FAILED.value
             }
         )
+    
+    # store assets in mongodb
+    asset= await ASSETS.call_two_functions(clientdb=request.app.client_db)
+
+    asset_resource=Assets(  
+        asset_project_id=project.id,
+        asset_name=file_id,
+        asset_size=os.path.getsize(file_path),
+        asset_type=Assets_Type.FILE.value
+    )
+
+    asset_record = await asset.create_asset(asset=asset_resource)
+
     return JSONResponse(
             content={
                 "signal": UserResponses.FILE_UPLOAD_SUCCESS.value,
-                "file_id": file_id,
+                "file_id": str(asset_record.id),
                 "project_id":str(project.id)
             }
         )
@@ -69,56 +83,95 @@ async def upload_file(request : Request , project_id: str,file: UploadFile,
 @data_router.post("/process/{project_id}")
 async def process_endpoint(request:Request ,project_id : str, processrequest: PROCESS_FILE):
 
-    file_id=processrequest.file_id
     Chunk_size=processrequest.chunk_size
     Chunk_overlap=processrequest.chunk_overlap
     do_reset=processrequest.do_reset
 
     add_to_clientdb= await Projects.call_two_functions(clientdb=request.app.client_db)
     project= await add_to_clientdb.get_project_or_create_one(project_id=project_id)
-
-    ProcessController = Process_controller(project_id=project_id)
-
-    file_content= ProcessController.get_file_content(file_id= file_id)
-
-    file_chunks=ProcessController.process_file_content(file_content=file_content,chunk_overlap=Chunk_overlap,chunk_size=Chunk_size,file_id=file_id)
-
-
-    if file_chunks is None or len(file_chunks)==0:
-        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST,
-                            content={
-                                "signal":UserResponses.PROCESSING_FAILED.value
-                            })   
     
-    file_chunks_SchemeObject=[
-        Chunks(chunk_text=i.page_content,
-               chunk_metadata=i.metadata,
-               chunk_order=order+1,
-               chunk_project_id=project.id)
-        for order,i in enumerate(file_chunks)
-    ]
-
     
-    chunks = await ADD_Chunks.call_two_functions(clientdb=request.app.client_db)
-
-
-
-    if do_reset == 1:
-        _ = await chunks.delete_chunks_by_project_id(
-            project_id=project.id
-        )
+    asset= await ASSETS.call_two_functions(clientdb=request.app.client_db)
     
+    asset_project_id={}
+    if processrequest.file_id:
+        result= await asset.get_one_file(asset_project_id=project.id,asset_name=processrequest.file_id)
+        if result is None:
+             JSONResponse(
+                 status_code=status.HTTP_400_BAD_REQUEST,
+                 content={
+                     "signal":UserResponses.FILE_ID_ERROR_VALUE.value
+                 }
+             )
+        asset_project_id={
+            result.id:result.asset_name
+        }
 
-    num_chunks= await chunks.add_many_chunks(chunks=file_chunks_SchemeObject,batchsize=10)
+    else:
 
-    
+        result= await asset.get_all_project_assets(asset_project_id=project.id,asset_type=Assets_Type.FILE)
+
+        asset_project_id={
+            rec.id : rec.asset_name
+            for rec in result
+        }
+
+        if len(asset_project_id)==0:
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={"signal":UserResponses.NO_FILES_ERROR}
+            )
+        
+        ProcessController = Process_controller(project_id=project_id) 
+
+        chunks = await ADD_Chunks.call_two_functions(clientdb=request.app.client_db)
+
+        if do_reset == 1:
+                _ = await chunks.delete_chunks_by_project_id(
+                    project_id=project.id
+                ) 
 
 
-    return JSONResponse(status_code=status.HTTP_202_ACCEPTED,
-                        content={"signal":UserResponses.PROCESSING_SUCCESS.value,
-                                 "len_chun":num_chunks})
+        no_records=0
+        no_files=0
+
+        for id,file_id in asset_project_id.items():
+                
+            file_content= ProcessController.get_file_content(file_id= file_id)
+
+            if file_content is None:
+                logger.info(f"Error while processing file id {file_id}")
+                continue
+
+            file_chunks=ProcessController.process_file_content(file_content=file_content,chunk_overlap=Chunk_overlap,chunk_size=Chunk_size,file_id=file_id)
+
+
+            if file_chunks is None or len(file_chunks)==0:
+                return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST,
+                                    content={
+                                        "signal":UserResponses.PROCESSING_FAILED.value
+                                    })   
+            
+            file_chunks_SchemeObject=[
+                Chunks(chunk_text=i.page_content,
+                    chunk_metadata=i.metadata,
+                    chunk_order=order+1,
+                    chunk_project_id=project.id,
+                    chunk_asset_id=id)
+                for order,i in enumerate(file_chunks)
+            ]
+
+            num_chunks += await chunks.add_many_chunks(chunks=file_chunks_SchemeObject,batchsize=10)
+            no_files+=1
+            
+
+
+            return JSONResponse(status_code=status.HTTP_202_ACCEPTED,
+                                content={"signal":UserResponses.PROCESSING_SUCCESS.value,
+                                        "len_chun":num_chunks,
+                                        "processed_files":no_files})
 
 
 
 
-     
+            
