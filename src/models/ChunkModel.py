@@ -3,6 +3,7 @@ from .schemas import Chunks
 from .enums import DatabaseEnum
 from bson.objectid import ObjectId
 from pymongo import InsertOne
+from typing import List
 
 
 class ADD_Chunks(BaseDataModel):
@@ -71,6 +72,26 @@ class ADD_Chunks(BaseDataModel):
         result= await self.collection.delete_many({"chunk_project_id":project_id})
 
         return result.delete_count
+
+
+
+    async def get_chunks_by_project_id(self,project_id: ObjectId,page_no: int , page_size: int=50) ->List:
+
+        if not project_id:
+            return False
+
+        records= await self.collection.find({
+            "chunk_project_id":project_id,
+        }).skip((page_no-1)*page_size).limit(page_size).to_list(length=None)
+
+        return [
+            Chunks(**record)
+            for record in records
+        ]
+
+
+
+
 
 
 

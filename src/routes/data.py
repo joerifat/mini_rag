@@ -97,7 +97,7 @@ async def process_endpoint(request:Request ,project_id : str, processrequest: PR
     if processrequest.file_id:
         result= await asset.get_one_file(asset_project_id=project.id,asset_name=processrequest.file_id)
         if result is None:
-             JSONResponse(
+            return JSONResponse(
                  status_code=status.HTTP_400_BAD_REQUEST,
                  content={
                      "signal":UserResponses.FILE_ID_ERROR_VALUE.value
@@ -116,60 +116,60 @@ async def process_endpoint(request:Request ,project_id : str, processrequest: PR
             for rec in result
         }
 
-        if len(asset_project_id)==0:
+    if len(asset_project_id)==0:
             return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                content={"signal":UserResponses.NO_FILES_ERROR}
+                content={"signal":UserResponses.NO_FILES_ERROR.value}
             )
         
-        ProcessController = Process_controller(project_id=project_id) 
+    ProcessController = Process_controller(project_id=project_id) 
 
-        chunks = await ADD_Chunks.call_two_functions(clientdb=request.app.client_db)
+    chunks = await ADD_Chunks.call_two_functions(clientdb=request.app.client_db)
 
-        if do_reset == 1:
-                _ = await chunks.delete_chunks_by_project_id(
-                    project_id=project.id
-                ) 
+    if do_reset == 1:
+            _ = await chunks.delete_chunks_by_project_id(
+                project_id=project.id
+            ) 
 
 
-        no_records=0
-        no_files=0
+    num_chunks=0
+    no_files=0
 
-        for id,file_id in asset_project_id.items():
+    for id,file_id in asset_project_id.items():
                 
-            file_content= ProcessController.get_file_content(file_id= file_id)
+        file_content= ProcessController.get_file_content(file_id= file_id)
 
-            if file_content is None:
-                logger.info(f"Error while processing file id {file_id}")
-                continue
+        if file_content is None:
+            logger.info(f"Error while processing file id {file_id}")
+            continue
 
-            file_chunks=ProcessController.process_file_content(file_content=file_content,chunk_overlap=Chunk_overlap,chunk_size=Chunk_size,file_id=file_id)
+        file_chunks=ProcessController.process_file_content(file_content=file_content,chunk_overlap=Chunk_overlap,chunk_size=Chunk_size,file_id=file_id)
 
 
-            if file_chunks is None or len(file_chunks)==0:
-                return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST,
-                                    content={
-                                        "signal":UserResponses.PROCESSING_FAILED.value
-                                    })   
+        if file_chunks is None or len(file_chunks)==0:
+            return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST,
+                                content={
+                                    "signal":UserResponses.PROCESSING_FAILED.value
+                                })   
+        
+        file_chunks_SchemeObject=[
+            Chunks(chunk_text=i.page_content,
+                chunk_metadata=i.metadata,
+                chunk_order=order+1,
+                chunk_project_id=project.id,
+                chunk_asset_id=id)
+            for order,i in enumerate(file_chunks)
+        ]
+
+        num_chunks += await chunks.add_many_chunks(chunks=file_chunks_SchemeObject,batchsize=10)
+        no_files+=1
             
-            file_chunks_SchemeObject=[
-                Chunks(chunk_text=i.page_content,
-                    chunk_metadata=i.metadata,
-                    chunk_order=order+1,
-                    chunk_project_id=project.id,
-                    chunk_asset_id=id)
-                for order,i in enumerate(file_chunks)
-            ]
-
-            num_chunks += await chunks.add_many_chunks(chunks=file_chunks_SchemeObject,batchsize=10)
-            no_files+=1
-            
 
 
-            return JSONResponse(status_code=status.HTTP_202_ACCEPTED,
-                                content={"signal":UserResponses.PROCESSING_SUCCESS.value,
-                                        "len_chun":num_chunks,
-                                        "processed_files":no_files})
+    return JSONResponse(status_code=status.HTTP_202_ACCEPTED,
+                        content={"signal":UserResponses.PROCESSING_SUCCESS.value,
+                                "len_chun":num_chunks,
+                                "processed_files":no_files})
 
 
 
