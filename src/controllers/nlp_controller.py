@@ -1,101 +1,88 @@
 from .base_controller import BaseController
-from models.schemas import Chunks,Project
+from models.schemas import Chunks
 from stores.llm.llm_enums import CohertEnum
-from helpers import get_settings
 from typing import List
-
+import json
 
 
 class NlpController(BaseController):
-    def __init__(self,vectordb_client,embedding_model,generation_model,
-                ):
-        super().__init__()
-        self.vectordb_client=vectordb_client
-        self.embedding_model=embedding_model
-        self.settings=get_settings()
+    def __init__(self,vector_db,generation_model,embedding_model):
+        self.vector_db=vector_db
         self.generation_model=generation_model
-        self.vectordb=vector_db
+        self.embedding_model=embedding_model
 
 
-    def create_collection_name(self,project_id:str):
+    async def create_collection_name(self,project_id:str):
         return f"collection_{project_id}".strip()
 
-
-    def reset_vector_db_collection(self,project_id: str):
-        collection_name=self.create_collection_name(project_id=project_id)
-        return self.vectordb_client.delete_collection(collection_name=collection_name)
-
-    def get_vector_db_collection_info(self,project_id):
-        collection_name=self.create_collection_name(project_id=project_id)
-        return self.vectordb_client.get_collection_info(collection_name=collection_name)   
+    async def reset_vector_db_collection(self,project_id: str):
+        collection_name= await self.create_collection_name(project_id=project_id)
+        return self.vector_db.delete_collection(collection_name=collection_name)
 
 
 
-    def index_into_vectordb(self,project:Project,chunks:List[Chunks],chunks_ids: List[int] ,do_rest:bool = False):
 
-        #step 1 get collection name
-        collection_name=self.create_collection_name(project_id=project.project_id)
+    async def get_info_about_collection(self,project_id:str):
+        collection_name=await self.create_collection_name(project_id=project_id)
+        collection_info=self.vector_db.get_collection_info(collection_name=collection_name)
+        return json.loads(
+            json.dumps(collection_info,default=lambda x: x.__dict__)
+        )
 
-        #step 2 get chunks
-        texts=[
+    async def index_into_vector_db(self,project_id:str,chunks:List[Chunks],chunk_ids:List[int],do_rest:bool=False):
+
+        collection_name=await self.create_collection_name(project_id=project_id)
+
+        text=[
             c.chunk_text
             for c in chunks
         ]
+
         metadata=[
             c.chunk_metadata
             for c in chunks
         ]
 
         vectors=[
-            self.embedding_model.create_embeddings(text=text,document_type=CohertEnum.DOCUMENT.value
-                                            )
-            for text in texts
+            self.embedding_model.create_embeddings(text=c,document_type=CohertEnum.DOCUMENT.value)
+            for c in text
         ]
 
-        #create collection if not exist
+        self.vector_db.create_collection(collection_name,
+                                        embedding_size=self.embedding_model.embedding_model_size,
+                                        do_rest=do_rest)
 
-        self.vectordb_client.create_collection( collection_name=collection_name,
-                                                embedding_size=self.settings.EMBEDDING_MODEL_SIZE,
-                                                do_rest=do_rest)
-
-        #insert into vector db
-
-        _=self.vectordb_client.insert_many(collection_name=collection_name,
-                                          text=texts,
-                                          vector=vectors,
-                                          metadata=metadata,
-                                          record_id=chunks_ids)
+        self.vector_db.insert_many(collection_name=collection_name, text=text,
+                                    vector=vectors, metadata=metadata, record_id=chunk_ids)
 
         return True
 
 
-    def search_by_vector(self,query:str,project:Project,limit:int =5):
 
-        collection_name=self.create_collection_name(project_id=project.project_id)
+    async def search_in_vector_db(self,project_id:str,query:str,limit: int=5):
+        collection_name= await self.create_collection_name(project_id=project_id)
 
-        vector=self.embedding_model.create_embeddings(text=query, document_type=CohertEnum.QUERY.value)
+        vector= self.embedding_model.create_embeddings(text=query,document_type=CohertEnum.QUERY.value)
 
-        if not vector or len(vector) == 0:
+        results=self.vector_db.search_by_vector(collection_name=collection_name, vector=vector, limit=limit)
+
+        if not results:
             return False
 
-        result=self.vectordb_client.search_by_vector(
-             collection_name=collection_name, vector=vector, limit=limit
+        return results
 
-        )
-        if not result:
-            return False
 
-        return True
+
+
+
+
+
+
+
+
 
         
 
 
 
 
-
-
-
-    
-
-
-    

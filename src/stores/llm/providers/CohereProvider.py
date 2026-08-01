@@ -69,16 +69,21 @@ class CohereProvider(LLMINTERFACE):
         if not self.embedding_model_id:
             self.logger.error("The embdedding model is not defined")
 
-        document_type=llm_enums.CohertEnum.DOCUMENT.value
+        input_type=llm_enums.CohertEnum.DOCUMENT.value
         if document_type== llm_enums.CohertEnum.QUERY.value:
-            document_type=llm_enums.CohertEnum.QUERY.value
+            input_type=llm_enums.CohertEnum.QUERY.value
 
         response=self.client.embed(model=self.embedding_model_id,
                                    input_type=document_type,
-                                   texts=self.process_text(text),
+                                   texts=[self.process_text(text)],
                                    embedding_types=["float"])
 
-        if not response or not response.embeddings or not response.embeddings.float:
+        if (
+            response is None
+            or response.embeddings is None
+            or response.embeddings.float is None
+            or len(response.embeddings.float) == 0
+        ):
             self.logger.error("Error while embedding text")
             return None
 

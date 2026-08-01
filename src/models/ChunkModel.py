@@ -71,7 +71,7 @@ class ADD_Chunks(BaseDataModel):
 
         result= await self.collection.delete_many({"chunk_project_id":project_id})
 
-        return result.delete_count
+        return result.deleted_count
 
 
 

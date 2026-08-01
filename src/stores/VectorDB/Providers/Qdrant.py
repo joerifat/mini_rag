@@ -35,7 +35,7 @@ class QdrantDB(VectorDBInterface):
         return self.client.get_collections()
 
     def get_collection_info(self, collection_name: str) -> dict:
-        return self.client.get_collections(collection_name=collection_name)
+        return self.client.get_collection(collection_name=collection_name)
 
     def delete_collection(self, collection_name):
         if self.is_collection_exit(collection_name=collection_name):
@@ -50,7 +50,7 @@ class QdrantDB(VectorDBInterface):
         if do_rest:
             _=self.delete_collection(collection_name=collection_name)
 
-        if not self.is_collection_exit(collection_name=collection_name):
+        if self.is_collection_exit(collection_name=collection_name):
             self.logger.error(f"The collection with name :{collection_name} is already exist")
             return False
 
@@ -90,10 +90,10 @@ class QdrantDB(VectorDBInterface):
             return False
 
         if metadata is None:
-            metadata =len(metadata)*[None]
+            metadata =len(text)*[None]
 
         if record_id is None:
-            record_id= len(metadata)*[None]
+            record_id= len(text)*[None]
         
 
         
@@ -105,11 +105,13 @@ class QdrantDB(VectorDBInterface):
             batch_text=text[i:batch_end]
             batch_vector=vector[i:batch_end]
             batch_metadata=metadata[i:batch_end]
+            batch_vector_id=record_id[i:batch_end]
 
             batch_records=[
                 models.Record(
+                    id=batch_vector_id[x],
                     vector=batch_vector[x],
-                    payload={"text":batch_text[x],"metadata":batch_metadata}
+                    payload={"text":batch_text[x],"metadata":batch_metadata[x]}
                 )
 
                 for x in range(len(batch_text))
@@ -118,11 +120,13 @@ class QdrantDB(VectorDBInterface):
 
                  _=self.client.upload_records(collection_name=collection_name,
                                          records=batch_records)
+                 return True
 
             except Exception as e:
                 self.logger.error(f"Error while inserting vectors {e}")
+                return False
 
-            return True
+        return True
 
             
 

@@ -15,3 +15,6 @@ class UserResponses(Enum):
     PROBLEM_WHILE_INSERTING_TO_VECTORDB="problem while inserting chunks into vectordb"
     INDEXING_INTO_VECTORDB_SUCCESS="inserting vectors into vectordb success!"
     VECTORDB_COLLECTION_RETRIEVED="Info is retrived successfully!"
+    VECTORDB_SEARCH_ERROR="Error while searching"
+    VECTORDB_SEARCH_SUCCESS="Searching process success!"
+    
