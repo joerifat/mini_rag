@@ -9,14 +9,32 @@ services:
       - mongo_data:/data/db
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
-      
-      
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
     networks:
       - backend
+  
+  pgvector:
+    image: pgvector/pgvector:pg18-trixie
+    container_name: pgvector
+
+    ports:
+      - "5444:5432"
+
+    volumes:
+      - pgvector_data:/var/lib/postgresql
+
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+    networks:
+      - backend
+    
+    restart: always
 
 networks:
   backend:
 
 volumes:
   mongo_data:
+  pgvector_data:

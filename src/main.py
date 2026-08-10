@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from routes import base_router,data_router,nlp_router
-from motor.motor_asyncio import AsyncIOMotorClient
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
 from helpers import get_settings
 from stores.llm import LLMFactory,LLMFACTORY
 from stores.VectorDB import VectorDbFactory
@@ -20,9 +21,15 @@ app=FastAPI(lifespan=lifespan)
 async def startup_db_client(app:FastAPI):
     settings= get_settings()
 
+    Postgres_url=f"postgresql+asyncpg://{settings.POSTGRES_USERNAME}:{settings.POSTGRES_PASSWORD}@localhost:{settings.POSTGRES_PORT}/{settings.POSTGRES_DATABASE}"
 
-    app.mongo_connection= AsyncIOMotorClient(settings.MONGODB_URL)
-    app.client_db= app.mongo_connection[settings.MONGODB_NAME]
+    app.db_engine=create_async_engine(Postgres_url)
+    app.db_client=sessionmaker(
+        app.db_engine,class_=AsyncSession,expire_on_commit=False
+    )# ده عباره عن مصنع ال sessions
+
+
+    
 
     llm_provider_factory = LLMFactory(config=settings)
 
