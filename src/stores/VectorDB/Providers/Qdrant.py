@@ -2,6 +2,7 @@ from qdrant_client import QdrantClient, models
 from ..VectorDBInterface import VectorDBInterface
 import logging
 from ..VectorDBEnum import DistanceMethodEnums
+from models import Retrived_chunks
 from typing import List
 
 
@@ -132,9 +133,20 @@ class QdrantDB(VectorDBInterface):
 
     def search_by_vector(self, collection_name, vector, limit):
 
-        return self.client.search(collection_name=collection_name,
+        results=self.client.search(collection_name=collection_name,
                                   query_vector=vector,
                                   limit=limit)
+
+        if not results or len(results==0):
+            return None
+
+        return [
+            Retrived_chunks(**{
+                "score":result.score,
+                "text":result.payload["text"]
+            })
+            for result in results
+        ]
 
 
 

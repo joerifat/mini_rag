@@ -1,5 +1,6 @@
 from abc import ABC,abstractmethod
 from typing import Optional, List
+from models import Retrived_chunks
 
 
 
@@ -54,7 +55,7 @@ class VectorDBInterface(ABC):
 
 
     @abstractmethod
-    def search_by_vector(self,collection_name: str, vector: list, limit: int):
+    def search_by_vector(self,collection_name: str, vector: list, limit: int) -> List[Retrived_chunks]:
         pass
 
 

@@ -17,4 +17,6 @@ class UserResponses(Enum):
     VECTORDB_COLLECTION_RETRIEVED="Info is retrived successfully!"
     VECTORDB_SEARCH_ERROR="Error while searching"
     VECTORDB_SEARCH_SUCCESS="Searching process success!"
+    RAG_ANSWER_ERROR="Error while generating answer"
+    RAG_ANSWER_SUCCESS="Answer Generated Successfully!"
     

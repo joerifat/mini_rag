@@ -25,3 +25,8 @@ class Chunks(BaseModel):
 
             }
         ]
+
+
+class Retrived_chunks(BaseModel):
+    text:str
+    score:float

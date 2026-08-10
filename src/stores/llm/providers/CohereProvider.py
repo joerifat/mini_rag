@@ -1,5 +1,6 @@
 from .. import LLMINTERFACE
 from .. import llm_enums
+from ..llm_enums import CohertEnum
 import cohere
 import logging
 
@@ -19,7 +20,7 @@ class CohereProvider(LLMINTERFACE):
 
         self.client=cohere.Client(api_key=self.api_key)
         self.logger=logging.Logger(__name__)
-
+        self.enums=CohertEnum
 
     def set_generation_model(self, model_id):
         self.generation_model_id=model_id

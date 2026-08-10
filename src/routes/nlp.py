@@ -91,7 +91,7 @@ async def search_index(request: Request, project_id: str, search_request: Search
                                  generation_model=request.app.generation_model,
                                  embedding_model=request.app.embedding_model)
 
-    results = nlp_controller.search_vector_db_collection(
+    results = nlp_controller.search_in_vector_db(
         project=project, text=search_request.text, limit=search_request.limit
     )
 
@@ -112,4 +112,39 @@ async def search_index(request: Request, project_id: str, search_request: Search
 
 
 
+@nlp_router.post("/index/answer/{project_id}")
+async def answer_rag(request: Request, project_id: str, search_request: SearchRequest):
+    
+    project_model=await Projects.call_two_functions(clientdb=request.app.client_db)
+    
+    
+    project=await project_model.get_project_or_create_one(project_id=project_id)
+    
+    nlp_controller=NlpController(vector_db=request.app.Vectordb,
+                                        generation_model=request.app.generation_model,
+                                        embedding_model=request.app.embedding_model)
+    
+
+    answer, full_prompt, chat_history = nlp_controller.answer_using_RAG(
+        project=project,
+        query=search_request.text,
+        limit=search_request.limit,
+    )
+
+    if not answer:
+        return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={
+                    "signal": UserResponses.RAG_ANSWER_ERROR.value
+                }
+        )
+    
+    return JSONResponse(
+        content={
+            "signal": UserResponses.RAG_ANSWER_SUCCESS.value,
+            "answer": answer,
+            "full_prompt": full_prompt,
+            "chat_history": chat_history
+        }
+    )
     
