@@ -24,9 +24,9 @@ async def startup_db_client(app:FastAPI):
     Postgres_url=f"postgresql+asyncpg://{settings.POSTGRES_USERNAME}:{settings.POSTGRES_PASSWORD}@localhost:{settings.POSTGRES_PORT}/{settings.POSTGRES_DATABASE}"
 
     app.db_engine=create_async_engine(Postgres_url)
-    app.db_client=sessionmaker(
+    app.client_db=sessionmaker(
         app.db_engine,class_=AsyncSession,expire_on_commit=False
-    )# ده عباره عن مصنع ال sessions
+    )
 
 
     
@@ -52,7 +52,7 @@ async def startup_db_client(app:FastAPI):
 
 
 async def shutdown_db_client(app:FastAPI):
-    app.mongo_connection.close()
+    app.db_engine.dispose()
     app.Vectordb.disconnect()
 
 

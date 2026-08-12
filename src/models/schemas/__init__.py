@@ -1,3 +1,1 @@
-from .data_chunk import Chunks
-from .project import Project
-from .assets import Assets
+from .minirag.postgresSchema import Project,Chunk,Asset

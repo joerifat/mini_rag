@@ -8,8 +8,7 @@ class Settings(BaseSettings):
     FILE_TYPE_AVAILABLE: list
     FILE_SIZE_LIMIT: int
     File_Chunk_size: int
-    MONGODB_URL: str
-    MONGODB_NAME: str
+
 
     OPENAI_APIKEY: str
     COHERE_APIKEY: str

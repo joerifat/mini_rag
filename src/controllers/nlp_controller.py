@@ -1,5 +1,5 @@
 from .base_controller import BaseController
-from models.schemas import Chunks
+from models.schemas import Chunk
 from stores.llm.llm_enums import CohertEnum
 from typing import List
 import json
@@ -30,7 +30,7 @@ class NlpController(BaseController):
             json.dumps(collection_info,default=lambda x: x.__dict__)
         )
 
-    async def index_into_vector_db(self,project_id:str,chunks:List[Chunks],chunk_ids:List[int],do_rest:bool=False):
+    async def index_into_vector_db(self,project_id:str,chunks:List[Chunk],chunk_ids:List[int],do_rest:bool=False):
 
         collection_name=await self.create_collection_name(project_id=project_id)
 

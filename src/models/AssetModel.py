@@ -1,68 +1,57 @@
-from .schemas import Assets
+from .schemas import Asset
 from .BaseDataModel import BaseDataModel
 from .enums import DatabaseEnum
 from bson.objectid import ObjectId
-import logging
+from sqlalchemy import select
 
 class ASSETS(BaseDataModel):
 
-    def __init__(self,clientdb: str):
+    def __init__(self,clientdb : str):
         super().__init__(clientdb=clientdb)
-        self.collection=self.clientdb[DatabaseEnum.COLLECTION_ASSETS_NAME.value]
+        self.clientdb=clientdb
 
-    
     @classmethod
-    async def call_two_functions(cls,clientdb: str):
-        instance= cls(clientdb)
-        await instance.init_collection()
+    async def call_two_functions(cls,clientdb : str):
+        instance=cls(clientdb)
         return instance
 
-
-    
-
-    async def init_collection(self):
-
-        all_collections= await self.clientdb.list_collection_names()
-
-        if DatabaseEnum.COLLECTION_ASSETS_NAME.value not in all_collections:
-            self.collection=self.clientdb[DatabaseEnum.COLLECTION_ASSETS_NAME.value]
-            indexs=Assets.index_settings()
-            for index in indexs:
-                await self.collection.create_index(
-                    index["key"],
-                    name=index["name"],
-                    unique=index["unique"]
-                )
-
-    async def create_asset(self, asset:Assets):
-
-        result= await self.collection.insert_one(asset.dict(by_alias=True,exclude_unset=True))
-        asset.id=result.inserted_id
+    async def create_asset(self, asset:Asset):
+        async with self.clientdb() as session:
+            async with session.begin():
+                session.add(asset)
+            await session.refresh(asset)
 
         return asset
 
 
+
     async def get_all_project_assets(self ,asset_project_id : str , asset_type: str):
+        async with self.clientdb() as session:
+            async with session.begin():
+              query = (
+                    select(Asset)
+                    .where(Asset.Asset_project_id == asset_project_id,
+                           Asset.Asset_type==asset_type)
+              )
 
-        result= await self.collection.find({
-            "asset_project_id":ObjectId(asset_project_id) if isinstance(asset_project_id,str) else asset_project_id,
-            "asset_type":asset_type
-        }).to_list(length=None)
+              result = await session.execute(query)
+              records= result.scalars().all()
 
-        return [
-            Assets(**result)
-            for rec in result
-            ]
+        return records
     
 
     async def get_one_file(self,asset_project_id : str, asset_name: str ):
+        async with self.clientdb() as session:
+            async with session.begin():
+              query = (
+                    select(Asset)
+                    .where(Asset.Asset_project_id == asset_project_id,
+                           Asset.Asset_name==asset_name)
+              )
 
-        result=await self.collection.find_one({
-            "asset_project_id":ObjectId(asset_project_id) if isinstance(asset_project_id,str) else asset_project_id,
-            "asset_name":asset_name
-        })
+              result = await session.execute(query)
+              record = result.scalar_one_or_none()
 
-        if result:
-            return Assets(**result)
-        
-        return None
+        return record
+
+
