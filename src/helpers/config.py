@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     DISTANCE_METHOD:str
     VECTOR_DB_BACKEND: str
     VECTOR_DB_PATH: str
+    INDEXING_METHOD:str
 
     DEAFULT_LANGUAGE: str ="en"
     PRIMARY_LANGUAGE: str
