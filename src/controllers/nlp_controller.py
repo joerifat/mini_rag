@@ -68,73 +68,69 @@ class NlpController(BaseController):
 
 
 
-    async def answer_using_RAG(self,project_id:str, query: str, limit: int=5 ):
+    async def answer_using_RAG(
+    self,
+    project_id: int,
+    query: str,
+    limit: int = 5
+):
 
-        answer,full_prompt,chat_history=None,None,None
+        answer, full_prompt, chat_history = None, None, None
 
-        #get the chunks the llm will use to answer
-        chunks=await self.search_in_vector_db(project_id=project_id,query=query,limit=limit)
-
-
-        if not chunks or len(chunks)==0:
-            return answer,full_prompt,chat_history
-
-        system_prompt=self.tempalte_parser.get(group="rag",key="system_prompt")
-
-        document_prompt="\n".join([
-            self.tempalte_parser.get("rag","document_prompt",
-                                     vars={
-                                         "doc_num":idx+1,
-                                         "chunk_text":doc.text
-                                     })
-
-
-
-                for idx,doc in enumerate(chunks)
-            
-        
-        ]
+        # 1. Retrieve relevant chunks
+        chunks = await self.search_in_vector_db(
+            project_id=project_id,
+            query=query,
+            limit=limit
         )
 
-        footer_prompt=self.tempalte_parser.get("rag","footer_prompt")
+        if not chunks:
+            return answer, full_prompt, chat_history
 
+        # 2. System prompt
+        system_prompt = self.tempalte_parser.get(
+            group="rag",
+            key="system_prompt"
+        )
 
+        # 3. Build retrieved documents context
+        document_prompt = "\n".join([
+            self.tempalte_parser.get(
+                group="rag",
+                key="document_prompt",
+                vars={
+                    "doc_num": idx + 1,
+                    "chunk_text": doc.text
+                }
+            )
+            for idx, doc in enumerate(chunks)
+        ])
+
+        # 4. Add user's question
+        footer_prompt = self.tempalte_parser.get(
+            group="rag",
+            key="footer_prompt",
+            vars={
+                "query": query
+            }
+        )
+
+        # 5. System message
         chat_history = [
             self.generation_model.construct_prompt(
                 prompt=system_prompt,
-                role=self.generation_model.enums.SYSTEM.value,
+                role=self.generation_model.enums.SYSTEM.value
             )
         ]
 
-        full_prompt = "\n\n".join([ document_prompt,  footer_prompt])
+        # 6. User prompt
+        full_prompt = "\n\n".join([
+            document_prompt,
+            footer_prompt
+        ])
 
-        # step4: Retrieve the Answer
-        answer = self.generation_model.generate_text(
-            prompt=full_prompt,
-            chat_history=chat_history
-        )
+        # 7. Generate answer
+        answer =  self.generation_model.generate_answer(user_prompt=full_prompt, chat_history =chat_history)
 
         return answer, full_prompt, chat_history
-
-
-
-
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-        
-
-
-
 
