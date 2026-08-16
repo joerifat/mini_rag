@@ -40,7 +40,7 @@ class ADD_Chunks(BaseDataModel):
                 for i in range(0,len(chunks),batchsize):
                     batch=chunks[i:i+batchsize]
                     session.add_all(batch)
-                    await session.refresh()
+
 
         return len(chunks)
                 
@@ -63,7 +63,7 @@ class ADD_Chunks(BaseDataModel):
             async with session.begin():
               query = (
                     select(Chunk)
-                    .where(Chunk.chunk_project_id == project_id)
+                    .where(Chunk.Chunk_project_id == project_id)
                     .offset((page_no - 1) * page_size)
                     .limit(page_size)
                 )

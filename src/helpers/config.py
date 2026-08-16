@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Optional
 
 class Settings(BaseSettings):
     APP_NAME: str
@@ -10,9 +11,9 @@ class Settings(BaseSettings):
     File_Chunk_size: int
 
 
-    OPENAI_APIKEY: str
-    COHERE_APIKEY: str
-    OPENAi_URL: str
+    OPENAI_APIKEY:Optional[str]=None
+    COHERE_APIKEY: Optional[str]=None
+    OPENAi_URL: Optional[str]=None
 
     GENERATION_BACKEND : str
     EMBEDDING_BACKEND : str
@@ -26,7 +27,6 @@ class Settings(BaseSettings):
 
     DISTANCE_METHOD:str
     VECTOR_DB_BACKEND: str
-    VECTOR_DB_PATH: str
     INDEXING_METHOD:str
 
     DEAFULT_LANGUAGE: str ="en"
@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_PORT : int
     POSTGRES_DATABASE: str
+    BASE_URL:str
     
     class Config:
         env_file=".env"

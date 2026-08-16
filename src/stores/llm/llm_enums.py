@@ -20,6 +20,7 @@ class CohertEnum(Enum):
 class LLMFACTORY(Enum):
     OpenAi="openai"
     COHERE="cohere"
+    OLLAMA="ollama"
 
     
 

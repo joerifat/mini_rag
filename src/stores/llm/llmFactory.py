@@ -1,5 +1,5 @@
 from .llm_enums import LLMFACTORY
-from .providers import CohereProvider,OpenAIProvider
+from .providers import CohereProvider,OpenAIProvider,OllamProvider
 from helpers.config import Settings
 
 
@@ -16,11 +16,13 @@ class LLMFactory:
                                   deafult_generation_temperature=self.config.GENERATION_DAFAULT_TEMPERATURE,
                                   deafult_input_max_char=self.config.INPUT_DAFAULT_MAX_CHARACTERS,
                                   deafult_output_max_tokens=self.config.GENERATION_DAFAULT_MAX_TOKENS)
-        if provider==LLMFACTORY.COHERE.value:
+        elif provider==LLMFACTORY.COHERE.value:
             return CohereProvider(api_key=self.config.COHERE_APIKEY,
                                   deafult_generation_temperature=self.config.GENERATION_DAFAULT_TEMPERATURE,
                                   deafult_max_input_char=self.config.INPUT_DAFAULT_MAX_CHARACTERS,
                                   deafult_output_max_tokens=self.config.GENERATION_DAFAULT_MAX_TOKENS)
 
+        elif provider==LLMFACTORY.OLLAMA.value:
+            return OllamProvider(base_url=self.config.BASE_URL)
         return None
         

@@ -11,7 +11,7 @@ logger=logging.getLogger("uvicorn")
 
 
 class PGVectorDB(VectorDBInterface):
-    def __init__(self,client_db,   distance_method: str,embedding_size: int =786,
+    def __init__(self,client_db,   distance_method: str,embedding_size: int =768,
                  indexing_method: str = PGVectorIndexingMethods.HNSW.value,
                  index_threshold:int = 1000):
         
@@ -46,6 +46,9 @@ class PGVectorDB(VectorDBInterface):
         async with self.client_db() as session:
             async with session.begin():
                 await session.execute(sql_text("CREATE EXTENSION IF NOT EXISTS vector"))
+
+    async def disconnect(self):
+        pass
 
     async def is_collection_exit(self, collection_name):
         async with self.client_db() as session:
@@ -120,7 +123,7 @@ class PGVectorDB(VectorDBInterface):
                                f"{PGVectorTableschema.VECTOR.value} VECTOR({embedding_size}),"
                                f"{PGVectorTableschema.CHUNK_ID.value} INTEGER,"
                                f"{PGVectorTableschema.METADATA.value} JSONB DEFAULT \'{{}}\',"
-                               f"FOREIGN KEY ({PGVectorTableschema.CHUNK_ID.value}) REFERENCES Chunks(Chunks_id)"
+                               f'FOREIGN KEY ({PGVectorTableschema.CHUNK_ID.value}) REFERENCES "Chunks"("Chunks_id")'
                             ")")
 
                 await session.execute(query)

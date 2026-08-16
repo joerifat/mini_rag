@@ -1,4 +1,5 @@
 from abc import ABC , abstractmethod#Abstract Base Class
+from typing import Union,List
 
 
 class LLMINTERFACE(ABC): #ABC means that this class supposed not to create a direct object from it
@@ -24,7 +25,7 @@ class LLMINTERFACE(ABC): #ABC means that this class supposed not to create a dir
 
 
     @abstractmethod
-    def create_embeddings(self, text: str, document_type: str = None): # document_type(user_prompt,text of file)
+    def create_embeddings(self, text:Union[str,List[str]] , document_type: str = None): # document_type(user_prompt,text of file)
 
         pass
 

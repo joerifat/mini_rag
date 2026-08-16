@@ -95,7 +95,7 @@ async def process_endpoint(request:Request ,project_id : int, processrequest: PR
     
     asset_project_id={}
     if processrequest.file_id:
-        result= await asset.get_one_file(asset_project_id=project.id,asset_name=processrequest.file_id)
+        result= await asset.get_one_file(asset_project_id=project.project_id,asset_name=processrequest.file_id)
         if result is None:
             return JSONResponse(
                  status_code=status.HTTP_400_BAD_REQUEST,
@@ -104,15 +104,15 @@ async def process_endpoint(request:Request ,project_id : int, processrequest: PR
                  }
              )
         asset_project_id={
-            result.id:result.asset_name
+            result.Asset_id:result.Asset_name
         }
 
     else:
 
-        result= await asset.get_all_project_assets(asset_project_id=project.id,asset_type=Assets_Type.FILE)
+        result= await asset.get_all_project_assets(asset_project_id=project.project_id,asset_type=Assets_Type.FILE)
 
         asset_project_id={
-            rec.id : rec.asset_name
+            rec.Asset_id : rec.Asset_name
             for rec in result
         }
 
@@ -128,14 +128,14 @@ async def process_endpoint(request:Request ,project_id : int, processrequest: PR
 
     if do_reset == 1:
             _ = await chunks.delete_chunks_by_project_id(
-                project_id=project.id
+                project_id=project.project_id
             ) 
 
 
     num_chunks=0
     no_files=0
 
-    for id,file_id in asset_project_id.items():
+    for asset_id,file_id in asset_project_id.items():
                 
         file_content= ProcessController.get_file_content(file_id= file_id)
 
@@ -153,11 +153,10 @@ async def process_endpoint(request:Request ,project_id : int, processrequest: PR
                                 })   
         
         file_chunks_SchemeObject=[
-            Chunk(chunk_text=i.page_content,
-                chunk_metadata=i.metadata,
-                chunk_order=order+1,
-                chunk_project_id=project.id,
-                chunk_asset_id=id)
+            Chunk(Chunk_text=i.page_content,
+                Chunk_metadata=i.metadata,
+                Chunk_project_id=project.project_id,
+                Chunk_asset_id=asset_id)
             for order,i in enumerate(file_chunks)
         ]
 

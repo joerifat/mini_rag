@@ -34,17 +34,17 @@ async def startup_db_client(app:FastAPI):
     llm_provider_factory = LLMFactory(config=settings)
 
     #generation model
-    app.generation_model= llm_provider_factory.create(provider=LLMFACTORY.OpenAi.value)
+    app.generation_model= llm_provider_factory.create(provider=LLMFACTORY.OLLAMA.value)
     app.generation_model.set_generation_model(model_id=settings.GENERATION_MODEL_ID)
 
     #Embedding model
-    app.embedding_model=llm_provider_factory.create(provider=LLMFACTORY.COHERE.value)
+    app.embedding_model=llm_provider_factory.create(provider=LLMFACTORY.OLLAMA.value)
     app.embedding_model.set_embedding_model(model_id=settings.EMBEDDING_MODEL_ID,embedding_size=settings.EMBEDDING_MODEL_SIZE)
 
     #VectorDB
-    vector_db_provider=VectorDbFactory(settings)
-    app.Vectordb=vector_db_provider.createDB(provider=settings.VECTOR_DB_BACKEND)
-    app.Vectordb.connect()
+    vectordb=VectorDbFactory(settings,client_db=app.client_db)
+    app.vectordb_provider=vectordb.createDB(provider=settings.VECTOR_DB_BACKEND)
+    await app.vectordb_provider.connect()
 
     #templateparser
     app.template_parser=TemplateParser(language=settings.PRIMARY_LANGUAGE,
@@ -52,8 +52,8 @@ async def startup_db_client(app:FastAPI):
 
 
 async def shutdown_db_client(app:FastAPI):
-    app.db_engine.dispose()
-    app.Vectordb.disconnect()
+    await app.db_engine.dispose()
+    await app.Vectordb.disconnect()
 
 
 
