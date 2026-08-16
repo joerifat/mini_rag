@@ -3,7 +3,7 @@ from typing import Optional
 
 
 class nlp_schema(BaseModel):
-    do_rest: Optional[int]= False
+    do_rest: Optional[bool]= False
 
 class SearchRequest(BaseModel):
     text: str

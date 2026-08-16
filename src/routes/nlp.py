@@ -29,7 +29,7 @@ async def index_into_vectordb(request:Request,project_id:int,schema:nlp_schema):
                                  template_parser=request.app.template_parser)
 
 
-    collection_name=nlp_controller.create_collection_name(project_id=project.project_id)
+    collection_name=await nlp_controller.create_collection_name(project_id=project.project_id)
 
     _=await request.app.vectordb_provider.create_collection(collection_name=collection_name, embedding_size=request.app.embedding_model.embedding_model_size, do_rest=schema.do_rest)
 
@@ -102,8 +102,8 @@ async def search_index(request: Request, project_id: int, search_request: Search
                                  embedding_model=request.app.embedding_model,
                                  template_parser=request.app.template_parser)
 
-    results = nlp_controller.search_in_vector_db(
-        project=project, text=search_request.text, limit=search_request.limit
+    results = await nlp_controller.search_in_vector_db(
+        project_id=project.project_id, query=search_request.text, limit=search_request.limit
     )
 
     if not results:
@@ -124,7 +124,7 @@ async def search_index(request: Request, project_id: int, search_request: Search
 
 
 @nlp_router.post("/index/answer/{project_id}")
-async def answer_rag(request: Request, project_id: str, search_request: SearchRequest):
+async def answer_rag(request: Request, project_id: int, search_request: SearchRequest):
     
     project_model=await Projects.call_two_functions(clientdb=request.app.client_db)
     
@@ -137,8 +137,8 @@ async def answer_rag(request: Request, project_id: str, search_request: SearchRe
                                         template_parser=request.app.template_parser)
     
 
-    answer, full_prompt, chat_history = nlp_controller.answer_using_RAG(
-        project=project,
+    answer, full_prompt, chat_history =await nlp_controller.answer_using_RAG(
+        project_id=project.project_id,
         query=search_request.text,
         limit=search_request.limit,
     )

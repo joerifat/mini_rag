@@ -22,5 +22,10 @@ class LLMFACTORY(Enum):
     COHERE="cohere"
     OLLAMA="ollama"
 
+class OllamaEnum(Enum):
+    SYSTEM = "system"
+    USER = "user"
+    ASSISTANT = "assistant"
+
     
 

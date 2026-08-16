@@ -123,7 +123,7 @@ class PGVectorDB(VectorDBInterface):
                                f"{PGVectorTableschema.VECTOR.value} VECTOR({embedding_size}),"
                                f"{PGVectorTableschema.CHUNK_ID.value} INTEGER,"
                                f"{PGVectorTableschema.METADATA.value} JSONB DEFAULT \'{{}}\',"
-                               f'FOREIGN KEY ({PGVectorTableschema.CHUNK_ID.value}) REFERENCES "Chunks"("Chunks_id")'
+                               f'FOREIGN KEY ({PGVectorTableschema.CHUNK_ID.value}) REFERENCES "Chunks"("Chunks_id") ON DELETE CASCADE'
                             ")")
 
                 await session.execute(query)
@@ -254,7 +254,8 @@ class PGVectorDB(VectorDBInterface):
 
                     for _text,_vector,_metadata,_record_id in zip(batch_text,batch_vector,batch_metadata,batch_record_id):
                         metadata_json=json.dumps(_metadata,ensure_ascii=False) if _metadata is not None else "{}"
-                        values.append({"text":_text,"vector":_vector,"metadata":metadata_json,"chunk_id":_record_id})
+                        vector_str = "[" + ",".join(map(str, _vector)) + "]"
+                        values.append({"text":_text,"vector":vector_str,"metadata":metadata_json,"chunk_id":_record_id})
 
 
                     batch_insert_sql=sql_text(f"""
@@ -275,8 +276,11 @@ class PGVectorDB(VectorDBInterface):
         if not collection_exist:
             raise ValueError(f"This Table {collection_name} does't exists")
 
+        if len(vector) == 1 and isinstance(vector[0], list):
+            vector = vector[0]
 
-        vector=str(vector)
+
+        vector="[" + ",".join(map(str, vector)) + "]"
 
         async with self.client_db() as session:
             async with session.begin():

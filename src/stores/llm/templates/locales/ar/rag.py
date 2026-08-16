@@ -21,7 +21,7 @@ document_prompt = Template(
     ])
 )
 
-footer = Template(
+footer_prompt = Template(
     "\n".join([
         "اعتمادًا فقط على المستندات السابقة، يرجى إنشاء إجابة للمستخدم.",
         "## الإجابة:",

@@ -13,15 +13,15 @@ class TemplateParser:
 
     def set_language(self, language:str):
         if not language:
-            self.language=self.deafult_language
+            return self.deafult_language
 
         language_path=os.path.join(self.current_dir,"locales",language)
 
         if not os.path.exists(language_path):
-            self.language=self.deafult_language
+            return self.deafult_language
 
         else:
-            self.language=language
+            return language
 
 
     def get(self,group:str , key: str, vars: dict={}):

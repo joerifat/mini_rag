@@ -22,11 +22,13 @@ document_prompt=Template("\n".join(
 ))
 
 
-footer=Template("\n".join(
-    [
-         "Based only on the above documents, please generate an answer for the user.",
-         "## Answer:",
-    ]
-))
+footer_prompt = Template("""
+Based only on the above documents, answer the following user question.
+
+## User Question:
+$query
+
+## Answer:
+""")
 
 

@@ -1,5 +1,6 @@
 from ..llm_interface import LLMINTERFACE
 from helpers.config import get_settings
+from .. import OllamaEnum
 from ollama import Client
 
 
@@ -13,6 +14,7 @@ class OllamProvider(LLMINTERFACE):
         self.generation_model_id=None
         self.embedding_model_size=None
         self.settings=get_settings()
+        self.enums=OllamaEnum
 
 
 
@@ -39,16 +41,18 @@ class OllamProvider(LLMINTERFACE):
             raise ValueError("The embedding model is not defined")
 
         response=self.client.embed(model=self.embedding_model_id,
-                                   input=text)
+                                   input=text,keep_alive=0
+
+                                   )
 
 
         embedding=response["embeddings"]
 
         if self.embedding_model_size is not None:
-            if len(embedding) != self.embedding_model_size:
+            if len(response["embeddings"][0]) != self.embedding_model_size:
                  raise ValueError(
                     f"Embedding dimension mismatch: "
-                    f"expected {self.embedding_size}, "
+                    f"expected {self.embedding_model_size}, "
                     f"received {len(embedding)}"
                 )
         return embedding
@@ -78,6 +82,7 @@ class OllamProvider(LLMINTERFACE):
 
    
 
-        response=self.client.chat(model=self.generation_model_id,messages=messages,options=options)
+        response=self.client.chat(model=self.generation_model_id,messages=messages,options=options,think=False,keep_alive="5m"
+)
 
         return response["message"]["content"]
