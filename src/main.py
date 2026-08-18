@@ -7,6 +7,7 @@ from stores.llm import LLMFactory,LLMFACTORY
 from stores.VectorDB import VectorDbFactory
 from contextlib import asynccontextmanager
 from stores.llm.templates.template_parser import TemplateParser
+from utils.metrics import setup_metrics
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -16,6 +17,8 @@ async def lifespan(app: FastAPI):
 
 
 app=FastAPI(lifespan=lifespan)
+
+setup_metrics(app)
 
 
 async def startup_db_client(app:FastAPI):

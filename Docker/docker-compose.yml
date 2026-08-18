@@ -1,40 +1,225 @@
 services:
-  mongodb:
-    image: mongo:7-jammy
-    container_name: Mongodb
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
-    networks:
-      - backend
-  
-  pgvector:
-    image: pgvector/pgvector:pg18-trixie
-    container_name: pgvector
+#fastapi
+  fastapi:
+    build:
+      context: ..
+      dockerfile: Docker/minirag/Dockerfile
+    container_name: fastapi
 
     ports:
-      - "5444:5432"
+      - "8000:8000"
 
     volumes:
-      - pgvector_data:/var/lib/postgresql
+      - "fastapi_data:/app/assets"
 
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+    depends_on:
+      pgvector:
+        condition: service_healthy
+
+    env_file:
+      - ./envs/.env.app
+
 
     networks:
       - backend
     
     restart: always
 
+
+
+
+#Nginx
+  nginx:
+    image: nginx:1.30
+    container_name: nginx
+
+    ports:
+      - "80:80"
+
+    volumes:
+      - "./nginx/deafult_conf:/etc/nginx/conf.d/default.conf:ro"
+
+    depends_on:
+      - fastapi
+
+    networks:
+      - backend
+
+    restart: always
+
+
+
+
+
+
+#grafana
+
+  grafana:
+    image: grafana/grafana:12.3.11
+    container_name: grafana
+
+    ports:
+      - "3000:3000"
+
+    volumes:
+      - "grafana-storage:/var/lib/grafana"
+
+    env_file:
+      - ./envs/.env.grafana
+
+
+    networks:
+      - backend
+
+    restart: always
+
+
+
+
+
+
+#prometheus
+  prometheus:
+    image: prom/prometheus:v3.3.0
+    container_name: prometheus
+
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      - "prometheus:/prometheus"
+      - "./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml"
+
+    networks: 
+      - backend
+
+    restart: always
+
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+
+
+
+
+
+
+#node exporter
+  node-exporter:
+    image: rancher/prom-node-exporter:v1.3.1
+    container_name: node-exporter
+
+    ports:
+      - '9100:9100'
+
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+
+    networks:
+      - backend
+
+    restart: always
+
+
+
+
+
+
+
+#qdrant
+  qdrant:
+    image: qdrant/qdrant:v1.19
+    container_name: qdrant
+
+
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+
+    volumes:
+      - "qdrant:/qdrant_storage"
+
+    networks:
+      - backend
+
+    restart: always
+
+
+
+
+
+  pgvector:
+    image: pgvector/pgvector:0.8.6-pg18-trixie
+    container_name: pgvector
+
+    volumes:
+      - 'pgvector:/var/lib/postgresql'
+
+    ports:
+      - "5432:5432"
+
+    env_file:
+      - ./envs/.env.postgres
+
+    networks:
+      - backend
+
+    restart: always
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U youssefrifat -d mini_rag"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.20.1
+    container_name: postgres-exporter
+
+    ports:
+      - "9187:9187"
+
+    depends_on:
+      pgvector:
+        condition: service_healthy
+
+    env_file:
+      - ./envs/.env.postgres_exporter
+
+    networks:
+      - backend
+
+    restart: always
+
+
+
+
 networks:
   backend:
+    driver: bridge
 
 volumes:
-  mongo_data:
-  pgvector_data:
+  fastapi_data:
+  pgvector:
+  qdrant:
+  prometheus:
+  grafana-storage:
+
+
+
+

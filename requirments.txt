@@ -13,3 +13,7 @@ SQLAlchemy==2.0.51
 asyncpg==0.30.0
 alembic==1.14.1
 psycopg2-binary==2.9.10
+prometheus-client>=0.20.0,<0.27.0
+starlette-exporter>=0.21.0,<0.25.0
+fastapi-health==0.4.0
+
