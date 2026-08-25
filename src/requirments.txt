@@ -16,4 +16,6 @@ psycopg2-binary==2.9.10
 prometheus-client>=0.20.0,<0.27.0
 starlette-exporter>=0.21.0,<0.25.0
 fastapi-health==0.4.0
+ollama==0.6.2
+
 

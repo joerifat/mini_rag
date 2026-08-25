@@ -22,8 +22,11 @@ RUN uv pip install -r requirments.txt --system
 
 COPY src/ .
 
+RUN mkdir -p /app/models/schemas/minirag
 
-COPY Doker/minirag/entrypint.sh /entrypoint.sh
+COPY Docker/alembic/alembic.ini /app/models/schemas/minirag/alembic.ini
+
+COPY Docker/minirag/entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 

@@ -24,7 +24,7 @@ setup_metrics(app)
 async def startup_db_client(app:FastAPI):
     settings= get_settings()
 
-    Postgres_url=f"postgresql+asyncpg://{settings.POSTGRES_USERNAME}:{settings.POSTGRES_PASSWORD}@localhost:{settings.POSTGRES_PORT}/{settings.POSTGRES_DATABASE}"
+    Postgres_url=f"postgresql+asyncpg://{settings.POSTGRES_USERNAME}:{settings.POSTGRES_PASSWORD}@pgvector:{settings.POSTGRES_PORT}/{settings.POSTGRES_DATABASE}"
 
     app.db_engine=create_async_engine(Postgres_url)
     app.client_db=sessionmaker(

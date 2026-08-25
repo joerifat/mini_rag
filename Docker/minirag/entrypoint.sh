@@ -7,3 +7,5 @@ cd /app/models/schemas/minirag
 alembic upgrade head
 
 cd /app
+
+exec "$@"

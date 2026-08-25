@@ -33,6 +33,11 @@ class Projects(BaseDataModel):
                 result=await session.execute(query)
                 project=result.scalar_one_or_none()
 
+
+                if project is None:
+                    project = Project(project_id=project_id)
+                    session.add(project)
+
             await session.refresh(project)
             return project
 

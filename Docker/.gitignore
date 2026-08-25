@@ -1,3 +1,4 @@
 envs/.env*
+alembic/alembic.ini
 
 !envs/.env.*.example
