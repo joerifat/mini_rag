@@ -15,5 +15,4 @@ def hello_world():
 async def get_env_variable(app_settings : Settings = Depends(get_settings)):
     App_name = app_settings.APP_NAME 
     App_version = app_settings.APP_version 
-    return {"app_name": App_name, "app_version": App_version}
-
+    return {"app_name": App_name, "app_version": App_version,"Owner":"Youssef_rifat"}
