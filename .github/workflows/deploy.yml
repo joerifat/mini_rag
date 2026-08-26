@@ -23,4 +23,20 @@ jobs:
             cd /home/github_user/workspace/mini_rag
             git checkout main
             git pull origin main
+
             sudo systemctl restart minirag.service
+
+            echo "Waiting for MiniRAG API..."
+
+            for i in {1..6}; do
+              if curl -fsS http://localhost/api/v1/env > /dev/null; then
+                echo "MiniRAG API is healthy."
+                exit 0
+              fi
+
+              echo "API not ready yet. Retrying in 5 seconds..."
+              sleep 5
+            done
+
+            echo "MiniRAG API failed health check."
+            exit 1
