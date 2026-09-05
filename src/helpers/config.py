@@ -38,6 +38,15 @@ class Settings(BaseSettings):
     POSTGRES_PORT : int
     POSTGRES_DATABASE: str
     BASE_URL:str
+
+    
+    CELERY_RABBITMQ_URL: str=None
+    CELERY_RESULT_BACKEND_URL :str=None
+    CELERY_TASK_TIME_LIMIT: int =600
+    CELERY_TASK_ACKS_LATE: bool = True
+    CELERY_WORKER_CONCURRENCY: int =2
+    CELERY_TASK_SERIALIZER: str = "json"
+
     
     class Config:
         env_file=".env"

@@ -9,6 +9,8 @@ import logging
 from .schemas.data import PROCESS_FILE
 from models import Projects,ADD_Chunks,ASSETS
 from models.schemas import Chunk,Asset
+from tasks.processing import process_project_files
+from tasks.process_workflow import process_and_push
 
 
 logger = logging.getLogger('uvicorn.error')
@@ -81,94 +83,56 @@ async def upload_file(request : Request , project_id: int,file: UploadFile,
 
 
 @data_router.post("/process/{project_id}")
-async def process_endpoint(request:Request ,project_id : int, processrequest: PROCESS_FILE):
+async def process_endpoint(project_id : int, processrequest: PROCESS_FILE):
 
     Chunk_size=processrequest.chunk_size
     Chunk_overlap=processrequest.chunk_overlap
     do_reset=processrequest.do_reset
+    file_id = processrequest.file_id
 
-    add_to_clientdb= await Projects.call_two_functions(clientdb=request.app.client_db)
-    project= await add_to_clientdb.get_project_or_create_one(project_id=project_id)
-    
-    
-    asset= await ASSETS.call_two_functions(clientdb=request.app.client_db)
-    
-    asset_project_id={}
-    if processrequest.file_id:
-        result= await asset.get_one_file(asset_project_id=project.project_id,asset_name=processrequest.file_id)
-        if result is None:
-            return JSONResponse(
-                 status_code=status.HTTP_400_BAD_REQUEST,
-                 content={
-                     "signal":UserResponses.FILE_ID_ERROR_VALUE.value
-                 }
-             )
-        asset_project_id={
-            result.Asset_id:result.Asset_name
+
+    task=process_project_files.delay(project_id=project_id,
+                                     file_id=file_id,
+                                     chunk_size=Chunk_size,
+                                     overlap_size=Chunk_overlap,
+                                     do_reset=do_reset)
+
+    return JSONResponse(
+        status_code=status.HTTP_202_ACCEPTED,
+        content={
+            "signal":UserResponses.PROCESSING_SUCCESS.value,
+            "task_id":task.id 
         }
+    )
 
-    else:
 
-        result= await asset.get_all_project_assets(asset_project_id=project.project_id,asset_type=Assets_Type.FILE)
 
-        asset_project_id={
-            rec.Asset_id : rec.Asset_name
-            for rec in result
+@data_router.post("/process_and_push/{project_id}")
+async def process_and_push_endpoint(project_id:int,processrequest: PROCESS_FILE):
+    
+
+    Chunk_size=processrequest.chunk_size
+    Chunk_overlap=processrequest.chunk_overlap
+    do_reset=processrequest.do_reset
+    file_id = processrequest.file_id
+
+
+    workflow_task=process_and_push.delay(
+       project_id=project_id
+       ,file_id=file_id
+       ,chunk_size=Chunk_size
+       ,overlap_size=Chunk_overlap
+       ,do_reset=do_reset
+    )
+
+    return JSONResponse(
+        status_code=status.HTTP_202_ACCEPTED,
+        content={
+            "signal":"The task has been received",
+            "task_id":workflow_task.id
         }
+    )
 
-    if len(asset_project_id)==0:
-            return JSONResponse(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                content={"signal":UserResponses.NO_FILES_ERROR.value}
-            )
-        
-    ProcessController = Process_controller(project_id=project_id) 
-
-    chunks = await ADD_Chunks.call_two_functions(clientdb=request.app.client_db)
-
-    if do_reset == 1:
-            _ = await chunks.delete_chunks_by_project_id(
-                project_id=project.project_id
-            ) 
-
-
-    num_chunks=0
-    no_files=0
-
-    for asset_id,file_id in asset_project_id.items():
-                
-        file_content= ProcessController.get_file_content(file_id= file_id)
-
-        if file_content is None:
-            logger.info(f"Error while processing file id {file_id}")
-            continue
-
-        file_chunks=ProcessController.process_file_content(file_content=file_content,chunk_overlap=Chunk_overlap,chunk_size=Chunk_size,file_id=file_id)
-
-
-        if file_chunks is None or len(file_chunks)==0:
-            return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST,
-                                content={
-                                    "signal":UserResponses.PROCESSING_FAILED.value
-                                })   
-        
-        file_chunks_SchemeObject=[
-            Chunk(Chunk_text=i.page_content,
-                Chunk_metadata=i.metadata,
-                Chunk_project_id=project.project_id,
-                Chunk_asset_id=asset_id)
-            for order,i in enumerate(file_chunks)
-        ]
-
-        num_chunks += await chunks.add_many_chunks(chunks=file_chunks_SchemeObject,batchsize=10)
-        no_files+=1
-            
-
-
-    return JSONResponse(status_code=status.HTTP_202_ACCEPTED,
-                        content={"signal":UserResponses.PROCESSING_SUCCESS.value,
-                                "len_chun":num_chunks,
-                                "processed_files":no_files})
 
 
 

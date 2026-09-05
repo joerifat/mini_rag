@@ -78,3 +78,36 @@ class Asset(SQLAlchemyBase):
 
 
 
+class Celery_tasks(SQLAlchemyBase):
+    __tablename__="Celery_task_execution"
+
+
+    execution_id=Column(Integer,primary_key=True,autoincrement=True)
+
+
+    task_name=Column(String,nullable=False)
+    task_args_hash=Column(String(64),nullable=False)
+    celery_task_id=Column(UUID(as_uuid=True),nullable=False)
+    task_args = Column(JSONB, nullable=True)
+
+
+    status=Column(String,nullable=False,default="PENDING")
+
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)   
+
+    __table_args__ = (
+        Index('ixz_task_name_args_celery_hash', task_name, task_args_hash, celery_task_id, unique=True),
+        Index('ixz_task_execution_status', status),
+        Index('ixz_task_execution_created_at', created_at),
+        Index('ixz_celery_task_id', celery_task_id),
+    )
+
+
+
+
+
+
+

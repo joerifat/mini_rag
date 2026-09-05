@@ -1,1 +1,1 @@
-from .allschemas import Project,Chunk,Asset,SQLAlchemyBase
+from .allschemas import Project,Chunk,Asset,SQLAlchemyBase,Celery_tasks
