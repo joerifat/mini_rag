@@ -1,18 +1,45 @@
 server {
     listen 80;
     server_name localhost;
+
     client_max_body_size 100M;
 
+    root /usr/share/nginx/html;
+    index index.html;
+
+    
     location / {
-        proxy_pass http://fastapi:8000;
+        try_files $uri $uri/ /index.html;
+    }
+
+    
+    location /api/ {
+        proxy_pass http://fastapi:8000/api/;
+
         proxy_connect_timeout 60s;
+        proxy_read_timeout 300s;
+
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # Optionally expose metrics endpoint directly
+    
+    location /docs {
+        proxy_pass http://fastapi:8000/docs;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /openapi.json {
+        proxy_pass http://fastapi:8000/openapi.json;
+    }
+
+    
     location /youssefrifat_metrics {
         proxy_pass http://fastapi:8000/youssefrifat_metrics;
     }

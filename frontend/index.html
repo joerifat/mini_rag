@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>MiniRAG Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css"/>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><div class="brandmark">R</div><div><b>MiniRAG</b><span>Studio</span></div></div>
+    <nav>
+      <button class="nav active" data-view="workspace"><span>⌂</span> Workspace</button>
+      <button class="nav" data-view="documents"><span>▤</span> Documents</button>
+      <button class="nav" data-view="retrieval"><span>⌕</span> Retrieval Lab</button>
+      <button class="nav" data-view="architecture"><span>◇</span> Architecture</button>
+    </nav>
+    <div class="side-bottom">
+      <div class="stack-label">LOCAL AI STACK</div>
+      <div class="stack-chip"><i></i> Ollama <span>online</span></div>
+      <div class="stack-chip"><i></i> pgvector <span>ready</span></div>
+      <div class="stack-chip"><i></i> Celery <span>worker</span></div>
+      <div class="profile"><div class="avatar">AI</div><div><b>AI Engineer</b><span>RAG Workspace</span></div><button>•••</button></div>
+    </div>
+  </aside>
+
+  <main>
+    <header>
+      <div>
+        <div class="eyebrow">ENGINEERING KNOWLEDGE WORKSPACE</div>
+        <h1>Ask your documents.<br><em>Get grounded answers.</em></h1>
+        <p>Upload, chunk, embed and retrieve knowledge through your end-to-end RAG pipeline.</p>
+      </div>
+      <div class="header-actions">
+        <div class="api"><i id="apiDot"></i><span>API</span><b id="apiState">Checking…</b></div>
+        <button class="ghost" id="settingsBtn">⚙</button>
+        <button class="primary" id="uploadTop">＋ Add document</button>
+      </div>
+    </header>
+
+    <section id="workspace" class="view active-view">
+      <div class="metric-row">
+        <div class="metric"><div class="metric-icon">▤</div><div><span>PROJECT</span><strong id="projectMetric">#1</strong><small>Active workspace</small></div></div>
+        <div class="metric"><div class="metric-icon">◫</div><div><span>VECTORS</span><strong id="vectorMetric">—</strong><small>pgvector records</small></div></div>
+        <div class="metric"><div class="metric-icon">⌁</div><div><span>RETRIEVAL</span><strong id="topKMetric">Top 5</strong><small>Context chunks</small></div></div>
+        <div class="metric"><div class="metric-icon">⚡</div><div><span>PIPELINE</span><strong id="pipelineMetric">Ready</strong><small id="pipelineSub">Waiting for input</small></div></div>
+      </div>
+
+      <div class="workspace-grid">
+        <section class="card ingest">
+          <div class="card-head"><div><span class="step">01</span><h2>Knowledge Ingestion</h2><p>Prepare your source for retrieval.</p></div><span class="status-pill">FASTAPI</span></div>
+          <div id="dropzone" class="dropzone">
+            <div class="upload-icon">⇧</div>
+            <h3>Drop a document here</h3>
+            <p>PDF, DOCX, TXT or Markdown</p>
+            <button class="secondary" id="browseBtn">Browse files</button>
+            <input id="fileInput" type="file" hidden accept=".pdf,.docx,.txt,.md"/>
+          </div>
+          <div id="fileCard" class="file-card hidden">
+            <div class="file-icon">PDF</div><div class="file-meta"><b id="fileName">document.pdf</b><span id="fileSize">0 MB</span></div><span class="check">✓</span>
+          </div>
+          <div class="form-grid">
+            <label>Project ID<input id="projectId" type="number" value="1" min="1"/></label>
+            <label>Chunk size<input id="chunkSize" type="number" value="500" min="50"/></label>
+            <label>Overlap<input id="overlap" type="number" value="80" min="0"/></label>
+            <label class="toggle-label">Reset collection <input id="reset" type="checkbox"/><span class="toggle"></span></label>
+          </div>
+          <button id="runPipeline" class="run" disabled><span>▶</span> Upload & build knowledge index</button>
+          <div id="taskBox" class="task-box hidden"><div><span>CELERY TASK</span><b id="taskId">—</b></div><button id="refreshInfo">Refresh index</button></div>
+        </section>
+
+        <section class="card chat">
+          <div class="card-head chat-head"><div><span class="step">02</span><h2>RAG Assistant</h2><p>Answers grounded in retrieved context.</p></div><button id="clearChat" class="icon-btn">↻</button></div>
+          <div id="messages" class="messages">
+            <div class="welcome">
+              <div class="orb">✦</div>
+              <h3>Your knowledge is ready to talk.</h3>
+              <p>Ask a question about your indexed documents. MiniRAG will retrieve the most relevant chunks and generate a grounded answer.</p>
+              <div class="suggestions">
+                <button>Summarize the key ideas</button>
+                <button>What are the main recommendations?</button>
+                <button>Explain the most important concept</button>
+              </div>
+            </div>
+          </div>
+          <div class="composer">
+            <textarea id="question" rows="1" placeholder="Ask your knowledge base…"></textarea>
+            <div class="composer-bottom"><div class="limit">Context <select id="limit"><option>3</option><option selected>5</option><option>8</option><option>10</option></select></div><button id="askBtn">Ask MiniRAG <span>→</span></button></div>
+          </div>
+        </section>
+      </div>
+
+      <section class="card trace">
+        <div class="trace-title"><div><span class="step">03</span><h2>Retrieval Trace</h2></div><div class="trace-tabs"><button class="active" data-trace="sources">Sources</button><button data-trace="prompt">Full prompt</button><button data-trace="raw">Raw response</button></div></div>
+        <div id="traceContent" class="trace-empty"><span>⌕</span><div><b>No retrieval yet</b><p>Ask a question to inspect what the model retrieved and used.</p></div></div>
+      </section>
+    </section>
+
+    <section id="documents" class="view"><div class="big-card"><span class="step">DOCUMENTS</span><h2>Document Pipeline</h2><p>The upload flow is connected to <code>POST /api/v1/data/upload/{project_id}</code>, then Celery runs processing + vector indexing.</p></div></section>
+    <section id="retrieval" class="view"><div class="big-card"><span class="step">RETRIEVAL LAB</span><h2>Vector Search</h2><p>Use the main workspace to compare retrieved chunks with the generated answer. Search is backed by PostgreSQL + pgvector.</p></div></section>
+    <section id="architecture" class="view">
+      <div class="big-card architecture">
+        <span class="step">SYSTEM DESIGN</span><h2>MiniRAG Architecture</h2><p>Built from the actual backend stack in this project.</p>
+        <div class="flow"><div>Client UI<small>HTML / JS</small></div><b>→</b><div>FastAPI<small>REST API</small></div><b>→</b><div>Celery<small>Async jobs</small></div><b>→</b><div>Ollama<small>LLM + embeddings</small></div><b>→</b><div>pgvector<small>Vector retrieval</small></div></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toast" class="toast"></div>
+<div id="settingsModal" class="modal hidden"><div class="modal-card"><button class="close" id="closeSettings">×</button><span class="step">CONNECTION</span><h2>Backend settings</h2><label>FastAPI base URL<input id="apiUrl" value="http://localhost:8000"/></label><button id="saveSettings" class="primary">Save connection</button></div></div>
+<script src="./app.js"></script>
+</body>
+</html>

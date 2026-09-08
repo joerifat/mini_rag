@@ -8,6 +8,7 @@ from stores.VectorDB import VectorDbFactory
 from contextlib import asynccontextmanager
 from stores.llm.templates.template_parser import TemplateParser
 from utils.metrics import setup_metrics
+from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,6 +18,17 @@ async def lifespan(app: FastAPI):
 
 
 app=FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 setup_metrics(app)
 
@@ -56,7 +68,7 @@ async def startup_db_client(app:FastAPI):
 
 async def shutdown_db_client(app:FastAPI):
     await app.db_engine.dispose()
-    await app.Vectordb.disconnect()
+    await app.vectordb_provider.disconnect()
 
 
 

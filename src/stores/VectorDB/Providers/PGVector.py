@@ -107,28 +107,44 @@ class PGVectorDB(VectorDBInterface):
         return True
 
 
-    async def create_collection(self, collection_name, embedding_size, do_rest):
+    async def create_collection(self, collection_name, embedding_size, do_rest=False):
+
+        # Reset requested: delete old collection first
         if do_rest:
             await self.delete_collection(collection_name=collection_name)
 
-        collection_exists=await self.is_collection_exit(collection_name=collection_name)
+        # Check after possible reset
+        collection_exists = await self.is_collection_exit(
+            collection_name=collection_name
+        )
+
+        # Collection already exists -> reuse it
         if collection_exists:
-            raise ValueError(f"The collection with name {collection_name} exists")
+            logger.info(
+                f"Collection {collection_name} already exists. Reusing it."
+            )
+            return True
+
+        # Otherwise create it
         async with self.client_db() as session:
             async with session.begin():
 
-                query=sql_text(f"CREATE TABLE {collection_name}("
-                               f"{PGVectorTableschema.ID.value} BIGSERIAL PRIMARY KEY,"
-                               f"{PGVectorTableschema.TEXT.value} TEXT,"
-                               f"{PGVectorTableschema.VECTOR.value} VECTOR({embedding_size}),"
-                               f"{PGVectorTableschema.CHUNK_ID.value} INTEGER,"
-                               f"{PGVectorTableschema.METADATA.value} JSONB DEFAULT \'{{}}\',"
-                               f'FOREIGN KEY ({PGVectorTableschema.CHUNK_ID.value}) REFERENCES "Chunks"("Chunks_id") ON DELETE CASCADE'
-                            ")")
+                query = sql_text(
+                    f"CREATE TABLE {collection_name}("
+                    f"{PGVectorTableschema.ID.value} BIGSERIAL PRIMARY KEY,"
+                    f"{PGVectorTableschema.TEXT.value} TEXT,"
+                    f"{PGVectorTableschema.VECTOR.value} VECTOR({embedding_size}),"
+                    f"{PGVectorTableschema.CHUNK_ID.value} INTEGER,"
+                    f"{PGVectorTableschema.METADATA.value} JSONB DEFAULT '{{}}',"
+                    f'FOREIGN KEY ({PGVectorTableschema.CHUNK_ID.value}) '
+                    f'REFERENCES "Chunks"("Chunks_id") ON DELETE CASCADE'
+                    ")"
+                )
 
                 await session.execute(query)
-            return True
-        return False
+
+        logger.info(f"Collection {collection_name} created successfully.")
+        return True
 
 
     async def is_index_exists(self,collection_name:str) -> bool:

@@ -67,16 +67,11 @@ async def _process_project_files(
             template_parser
         ) = await setup_utils()
 
-        # ---------------------------------------------------------
-        # 1) إنشاء Idempotency Manager
-        # ---------------------------------------------------------
         manager = IdempotancyManager(
             db_client=client_db
         )
 
-        # ---------------------------------------------------------
-        # 2) تحديد البيانات التي تميز هذه الـ Task
-        # ---------------------------------------------------------
+
         task_args = {
             "project_id": project_id,
             "file_id": file_id,
@@ -89,9 +84,7 @@ async def _process_project_files(
 
         celery_task_id = task_instance.request.id
 
-        # ---------------------------------------------------------
-        # 3) هل المفروض ننفذ الـ Task أم لا؟
-        # ---------------------------------------------------------
+
         should_execute, existing_task = await manager.should_execute_task(
             task_name=task_name,
             task_args=task_args,
@@ -99,7 +92,7 @@ async def _process_project_files(
             task_time_limit=600
         )
 
-        # نفس التنفيذ موجود بالفعل ومش محتاج يتنفذ مرة أخرى
+
         if not should_execute:
             logger.warning(
                 f"Task will not execute. Existing status: "
@@ -108,9 +101,7 @@ async def _process_project_files(
 
             return existing_task.result
 
-        # ---------------------------------------------------------
-        # 4) إنشاء record جديد أو استخدام الموجود
-        # ---------------------------------------------------------
+
         if existing_task:
             task_record = existing_task
 
@@ -274,9 +265,7 @@ async def _process_project_files(
 
             no_files += 1
 
-        # ---------------------------------------------------------
-        # 5) نجاح الـ Task
-        # ---------------------------------------------------------
+
 
         success_result = {
             "signal": UserResponses.PROCESSING_SUCCESS.value,
@@ -317,8 +306,7 @@ async def _process_project_files(
                     f"{str(status_error)}"
                 )
 
-        # مهم جدًا:
-        # raise هي اللي تخلي Celery تشوف FAILURE/RETRY
+
         raise
 
     finally:
